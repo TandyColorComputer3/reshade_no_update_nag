@@ -789,17 +789,20 @@ void reshade::runtime::draw_gui()
 	if (show_overlay != _show_overlay)
 		open_overlay(show_overlay, show_overlay_source);
 
-	const bool show_splash_window = _show_splash && (is_loading() || (_reload_count <= 1 && (_last_present_time - _last_reload_time) < std::chrono::seconds(5)) || (!_show_overlay && _tutorial_index == 0 && _input != nullptr));
+	// Only show splash window if overlay was explicitly opened by user
+	const bool show_splash_window = _overlay_explicitly_opened && _show_splash && (is_loading() || (_reload_count <= 1 && (_last_present_time - _last_reload_time) < std::chrono::seconds(5)) || (!_show_overlay && _tutorial_index == 0 && _input != nullptr));
 
 	// Do not show this message in the same frame the screenshot is taken (so that it won't show up on the GUI screenshot)
-	const bool show_screenshot_message = (_show_screenshot_message || !_last_screenshot_save_successful) && !_should_save_screenshot && (_last_present_time - _last_screenshot_time) < std::chrono::seconds(_last_screenshot_save_successful ? 3 : 5);
-	const bool show_preset_transition_message = _show_preset_transition_message && _is_in_preset_transition;
-	const bool show_message_window = show_screenshot_message || show_preset_transition_message || !_preset_save_successful;
+	// Only show messages if overlay was explicitly opened by user
+	const bool show_screenshot_message = _overlay_explicitly_opened && (_show_screenshot_message || !_last_screenshot_save_successful) && !_should_save_screenshot && (_last_present_time - _last_screenshot_time) < std::chrono::seconds(_last_screenshot_save_successful ? 3 : 5);
+	const bool show_preset_transition_message = _overlay_explicitly_opened && _show_preset_transition_message && _is_in_preset_transition;
+	const bool show_message_window = show_screenshot_message || show_preset_transition_message || (_overlay_explicitly_opened && !_preset_save_successful);
 
-	const bool show_clock = _show_clock == 1 || (_show_overlay && _show_clock > 1);
-	const bool show_fps = _show_fps == 1 || (_show_overlay && _show_fps > 1);
-	const bool show_frametime = _show_frametime == 1 || (_show_overlay && _show_frametime > 1);
-	const bool show_preset_name = _show_preset_name == 1 || (_show_overlay && _show_preset_name > 1);
+	// Only show statistics if overlay was explicitly opened by user
+	const bool show_clock = _overlay_explicitly_opened && (_show_clock == 1 || (_show_overlay && _show_clock > 1));
+	const bool show_fps = _overlay_explicitly_opened && (_show_fps == 1 || (_show_overlay && _show_fps > 1));
+	const bool show_frametime = _overlay_explicitly_opened && (_show_frametime == 1 || (_show_overlay && _show_frametime > 1));
+	const bool show_preset_name = _overlay_explicitly_opened && (_show_preset_name == 1 || (_show_overlay && _show_preset_name > 1));
 	bool show_statistics_window = show_clock || show_fps || show_frametime || show_preset_name;
 #if RESHADE_ADDON
 	for (const addon_info &info : addon_loaded_info)
@@ -1280,7 +1283,8 @@ void reshade::runtime::draw_gui()
 			_is_font_scaling = true;
 		}
 
-		if (_is_font_scaling)
+		// Only show font scaling popup if overlay was explicitly opened by user
+		if (_is_font_scaling && _overlay_explicitly_opened)
 		{
 			if (!imgui_io.KeyCtrl)
 				_is_font_scaling = false;
@@ -1367,11 +1371,29 @@ void reshade::runtime::draw_gui()
 				ImGui::SetNextWindowFocus();
 		}
 
+		// Focus Home tab when overlay is first opened
+		static bool should_focus_home = false;
+		if (_overlay_explicitly_opened && !should_focus_home)
+		{
+			should_focus_home = true;
+		}
+		else if (!_show_overlay)
+		{
+			should_focus_home = false;
+		}
+
 		for (const std::pair<std::string, void(runtime:: *)()> &widget : overlay_callbacks)
 		{
 			if (ImGui::Begin(widget.first.c_str(), nullptr, ImGuiWindowFlags_NoFocusOnAppearing)) // No focus so that window state is preserved between opening/closing the GUI
 				(this->*widget.second)();
 			ImGui::End();
+		}
+
+		// Focus Home tab when overlay is first opened (after all windows are created, for docked windows/tabs)
+		if (should_focus_home)
+		{
+			ImGui::SetWindowFocus(_("Home###home"));
+			should_focus_home = false; // Only focus once
 		}
 
 		if (!_editors.empty())
@@ -5103,7 +5125,14 @@ bool reshade::runtime::open_overlay(bool open, api::input_source source)
 	_show_overlay = open;
 
 	if (open)
+	{
 		_imgui_context->NavInputSource = static_cast<ImGuiInputSource>(source);
+		_overlay_explicitly_opened = true; // Mark overlay as explicitly opened by user
+	}
+	else
+	{
+		_overlay_explicitly_opened = false; // Clear flag when overlay is closed
+	}
 
 	return true;
 }

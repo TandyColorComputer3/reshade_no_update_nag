@@ -281,6 +281,7 @@ namespace reshade
 		bool _no_reload_on_init = false;
 		bool _performance_mode = false;
 		bool _effect_load_skipping = false;
+		bool _effects_were_destroyed = false; // Track if effects were destroyed by on_reset() to force reload in on_init()
 		unsigned int _reload_key_data[4] = {};
 
 		std::vector<std::pair<std::string, std::string>> _global_preprocessor_definitions;
@@ -421,6 +422,7 @@ namespace reshade
 
 		bool _show_splash = true;
 		bool _show_overlay = false;
+		bool _overlay_explicitly_opened = false; // Track if overlay was explicitly opened by user (HOME key or gamepad)
 		unsigned int _show_fps = 2;
 		unsigned int _show_clock = false;
 		unsigned int _show_frametime = false;

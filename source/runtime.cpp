@@ -526,6 +526,13 @@ void reshade::runtime::on_reset()
 	// Already performs a wait for idle, so no need to do it again before destroying resources below
 	destroy_effects();
 
+#if RESHADE_GUI
+	// Reset reload count so effects will be properly displayed after reinitialization
+	_reload_count = 0;
+	// Mark that we need to reload effects after reinitialization
+	_effects_were_destroyed = true;
+#endif
+
 	_device->destroy_resource(_empty_tex);
 	_empty_tex = {};
 	_device->destroy_resource_view(_empty_srv);
@@ -3784,8 +3791,14 @@ exit_failure:
 void reshade::runtime::update_effects()
 {
 	// Delay first load to the first render call to avoid loading while the application is still initializing
-	if (_frame_count == 0 && !_no_reload_on_init)
+	// Always reload on first frame (initial startup) or if effects were destroyed by on_reset() (checkpoint reload, focus loss, etc.)
+	// Only respect _no_reload_on_init for resets, not for initial startup
+	if (_frame_count == 0 || (_effects_were_destroyed && !_no_reload_on_init))
+	{
+		if (_effects_were_destroyed)
+			_effects_were_destroyed = false;
 		reload_effects();
+	}
 
 	if (!is_loading() && !_is_in_preset_transition && !_reload_required_effects.empty())
 	{

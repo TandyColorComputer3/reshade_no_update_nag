@@ -1,6 +1,8 @@
 ReShade
 =======
 
+> **Note**: This is a custom fork with modifications. See [CHANGES.md](CHANGES.md) for details on what has been changed.
+
 This is a generic post-processing injector for games and video software. It exposes an automated way to access both frame color and depth information and a custom shader language called ReShade FX to write effects like ambient occlusion, depth of field, color correction and more which work everywhere.
 
 ReShade can optionally load **add-ons**, DLLs that make use of the ReShade API to extend functionality of both ReShade and/or the application ReShade is being applied to. To get started on how to write your own add-on, check out the [API reference](REFERENCE.md).

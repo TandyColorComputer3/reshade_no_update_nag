@@ -22,6 +22,9 @@ unsigned int reshade::runtime::s_latest_version[3] = {};
 
 void reshade::runtime::check_for_update()
 {
+	// Hard-disable online update checks + nags
+	return;
+
 #if defined(NDEBUG) && !defined(RESHADE_TEST_APPLICATION)
 	if (s_latest_version[0] != 0)
 		return;
@@ -36,7 +39,6 @@ void reshade::runtime::check_for_update()
 	if (request == nullptr)
 		return;
 
-	// Set some timeouts to avoid stalling startup because of a broken Internet connection
 	DWORD timeout = 2000; // 2 seconds
 	InternetSetOption(request, INTERNET_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(timeout));
 	InternetSetOption(request, INTERNET_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(timeout));
