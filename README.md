@@ -1,7 +1,7 @@
 ReShade
 =======
 
-> **Note**: This is a custom fork with modifications. See [CHANGES.md](CHANGES.md) for details on what has been changed.
+> **Note**: This is a custom fork with modifications. See [CHANGES.md](CHANGES.md) for details, [PORTING_UPDATE_NAG.md](PORTING_UPDATE_NAG.md) for the exact update-nag patch, and [BUILD_INSTRUCTIONS.md](BUILD_INSTRUCTIONS.md) for the quickest way to compare against upstream and rebuild `ReShade64.dll` without using the Visual Studio GUI.
 
 This is a generic post-processing injector for games and video software. It exposes an automated way to access both frame color and depth information and a custom shader language called ReShade FX to write effects like ambient occlusion, depth of field, color correction and more which work everywhere.
 
