@@ -1,56 +1,120 @@
-# Building ReShade64.dll
+# Building and updating `ReShade64.dll` efficiently
 
-## Option 1: Visual Studio (Easiest)
+If you only care about refreshing your customized `ReShade64.dll`, you do **not** need to open the Visual Studio IDE and click through the solution by hand every time. This repository now includes a small PowerShell helper that finds MSBuild automatically and builds only the 64-bit `ReShade` target.
 
-1. Open `ReShade.sln` in Visual Studio
-2. Select **Release** configuration and **x64** platform from the dropdowns at the top
-3. Right-click on the **ReShade** project → **Build**
-   - Or use menu: **Build** → **Build Solution** (Ctrl+Shift+B)
-4. The compiled DLL will be in: `bin\x64\Release\ReShade64.dll`
+## One-time setup
 
-## Option 2: Command Line with MSBuild
+Install one of these on Windows:
 
-Open **Developer Command Prompt for VS** (or PowerShell with Visual Studio environment):
+- Visual Studio 2022 **or** Build Tools for Visual Studio 2022
+- Workload: **Desktop development with C++**
+- Git with submodule support
 
-```powershell
-# Navigate to project directory
-cd C:\Users\trellen\source\repos\reshade
+You do **not** need Visual Studio 2017 specifically. Visual Studio 2019/2022 Build Tools are sufficient as long as the C++ toolchain is installed.
 
-# Build Release x64 configuration
-msbuild ReShade.sln /p:Configuration=Release /p:Platform=x64 /t:ReShade
-```
+## Fast path: build only `ReShade64.dll`
 
-Output will be in: `bin\x64\Release\ReShade64.dll`
-
-## Option 3: Using the Build Script
-
-The project includes a PowerShell build script, but it builds both 32-bit and 64-bit:
+From a regular PowerShell window in the repo root:
 
 ```powershell
-cd C:\Users\trellen\source\repos\reshade
-.\tools\build_release.ps1
+.\tools\build_reshade64.ps1
 ```
 
-This will build both ReShade32.dll and ReShade64.dll in their respective Release folders.
+That script:
 
-## Quick Build Command (if MSBuild is in PATH)
+1. locates `MSBuild.exe` via `vswhere`,
+2. updates the embedded version header,
+3. builds only the `ReShade` project for `Release|64-bit`, and
+4. leaves the output at `bin\x64\Release\ReShade64.dll`.
+
+If you want a clean rebuild:
 
 ```powershell
-msbuild ReShade.sln /p:Configuration=Release /p:Platform=x64 /t:ReShade /m
+.\tools\build_reshade64.ps1 -Clean
 ```
 
-The `/m` flag enables parallel builds for faster compilation.
+If you want the finished DLL copied somewhere immediately:
 
-## Output Location
+```powershell
+.\tools\build_reshade64.ps1 -OutputPath 'C:\temp\ReShade64.dll'
+```
 
-After building, your ReShade64.dll will be located at:
+## Efficient update workflow for future upstream releases
+
+### Option A: keep your fork and rebase/merge occasionally
+
+This is the easiest long-term workflow if you want to refresh every few years:
+
+```bash
+git remote add upstream https://github.com/crosire/reshade.git
+git fetch upstream --tags
+git checkout work
+git merge upstream/main
+```
+
+After the merge, re-apply only the small fork-only changes you still want (like the update nag removal), then build with:
+
+```powershell
+.\tools\build_reshade64.ps1
+```
+
+### Option B: carry the update-nag change as a tiny patch
+
+Since your actual update-nag change is just an early `return;` in `source/runtime_update_check.cpp`, you can keep that change as a tiny patch instead of re-discovering it manually.
+
+Create the patch from this repo once:
+
+```bash
+git diff d49f756..c80633f -- source/runtime_update_check.cpp > update-nag.patch
+```
+
+Then in a newer upstream checkout:
+
+```bash
+git apply --3way update-nag.patch
+```
+
+If it applies cleanly, build immediately:
+
+```powershell
+.\tools\build_reshade64.ps1
+```
+
+If it does not apply cleanly, open `source/runtime_update_check.cpp`, search for `check_for_update()`, and reinsert the early return described in `PORTING_UPDATE_NAG.md`.
+
+## Compare your fork against upstream surgically
+
+These are the most useful commands when you only care about your custom changes:
+
+```bash
+# Show only your fork-only commits
+git log --oneline upstream/main..HEAD
+
+# Show only the current update-nag source delta
+git diff upstream/main...HEAD -- source/runtime_update_check.cpp
+
+# Search for the update-check and banner logic
+rg -n "check_for_update|s_latest_version|An update is available" source
+```
+
+That is usually enough to answer: "what exactly do I still need to carry forward?"
+
+## Output
+
+Successful builds produce:
+
 ```
 bin\x64\Release\ReShade64.dll
 ```
 
-## Notes
+## If Doom: The Dark Ages (or another game) forces a refresh
 
-- Make sure you have Visual Studio 2019 or later with C++ desktop development workload installed
-- The first build may take several minutes as it compiles all dependencies
-- Subsequent builds will be faster due to incremental compilation
+A practical low-friction routine is:
 
+1. `git fetch upstream --tags`
+2. `git merge upstream/main`
+3. re-apply or verify the tiny `check_for_update()` patch
+4. run `.\tools\build_reshade64.ps1`
+5. copy `bin\x64\Release\ReShade64.dll` into your game setup
+
+That keeps the process down to Git + one PowerShell command, without going back through the Visual Studio GUI.
