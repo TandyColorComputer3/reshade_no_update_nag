@@ -1,7 +1,7 @@
 ReShade
 =======
 
-> **Note**: This is a custom fork with modifications. See [CHANGES.md](CHANGES.md) for details on what has been changed.
+> **Note**: This is a custom fork with modifications. See [CHANGES.md](CHANGES.md) for details on what has been changed and [PORTING_UPDATE_NAG.md](PORTING_UPDATE_NAG.md) for re-applying the update-nag removal to newer ReShade versions.
 
 This is a generic post-processing injector for games and video software. It exposes an automated way to access both frame color and depth information and a custom shader language called ReShade FX to write effects like ambient occlusion, depth of field, color correction and more which work everywhere.
 
